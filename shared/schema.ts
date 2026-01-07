@@ -141,6 +141,7 @@ export interface DashboardStats {
   totalProfits: number;
   lowStockCount: number;
   recentTransactions: Transaction[];
+  topSellingProducts: { name: string; quantity: number }[];
 }
 
 // Settings

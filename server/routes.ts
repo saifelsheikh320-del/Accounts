@@ -166,7 +166,7 @@ async function seedDatabase() {
   const users = await storage.getUsers();
   if (users.length === 0) {
     // Create Admin
-    await storage.createUser({
+    const admin = await storage.createUser({
       username: "admin",
       password: "password123", // In a real app, hash this!
       role: "admin",
@@ -175,7 +175,7 @@ async function seedDatabase() {
     });
 
     // Create Sample Products
-    await storage.createProduct({
+    const mouse = await storage.createProduct({
       name: "ماوس لاسلكي",
       sku: "MS-001",
       quantity: 50,
@@ -183,7 +183,7 @@ async function seedDatabase() {
       sellingPrice: "25.00",
       category: "إلكترونيات"
     });
-    await storage.createProduct({
+    const keyboard = await storage.createProduct({
       name: "لوحة مفاتيح ميكانيكية",
       sku: "KB-002",
       quantity: 20,
@@ -191,7 +191,7 @@ async function seedDatabase() {
       sellingPrice: "89.99",
       category: "إلكترونيات"
     });
-    await storage.createProduct({
+    const cable = await storage.createProduct({
       name: "كابل USB-C",
       sku: "CB-003",
       quantity: 100,
@@ -201,15 +201,48 @@ async function seedDatabase() {
     });
 
     // Create Sample Partners
-    await storage.createPartner({
+    const customer = await storage.createPartner({
       name: "عميل نقدي",
       type: "customer",
       email: "guest@store.com"
     });
-    await storage.createPartner({
+    const supplier = await storage.createPartner({
       name: "شركة التوريد التقنية",
       type: "supplier",
       email: "orders@techsupplier.com"
+    });
+
+    // Create Sample Transactions (Sales)
+    await storage.createTransaction({
+      type: "sale",
+      partnerId: customer.id,
+      userId: admin.id,
+      notes: "فاتورة تجريبية #1",
+      items: [
+        { productId: mouse.id, quantity: 2, price: Number(mouse.sellingPrice) },
+        { productId: cable.id, quantity: 5, price: Number(cable.sellingPrice) }
+      ]
+    });
+
+    await storage.createTransaction({
+      type: "sale",
+      partnerId: customer.id,
+      userId: admin.id,
+      notes: "فاتورة تجريبية #2",
+      items: [
+        { productId: keyboard.id, quantity: 1, price: Number(keyboard.sellingPrice) }
+      ]
+    });
+    
+    // Sample Purchase
+    await storage.createTransaction({
+      type: "purchase",
+      partnerId: supplier.id,
+      userId: admin.id,
+      notes: "شراء بضاعة جديدة",
+      items: [
+        { productId: mouse.id, quantity: 10, price: Number(mouse.costPrice) }
+      ]
     });
   }
 }

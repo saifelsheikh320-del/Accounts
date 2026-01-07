@@ -245,11 +245,27 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(transactions.transactionDate))
       .limit(5);
 
+    // Top Selling Products
+    const topSelling = await db.execute(sql`
+      SELECT p.name, SUM(ti.quantity) as quantity
+      FROM transaction_items ti
+      JOIN transactions t ON t.id = ti.transaction_id
+      JOIN products p ON p.id = ti.product_id
+      WHERE t.type = 'sale'
+      GROUP BY p.name
+      ORDER BY quantity DESC
+      LIMIT 5
+    `);
+
     return {
       totalSales: Number(sales[0]?.total || 0),
       totalProfits: Number(profits.rows[0]?.profit || 0),
       lowStockCount: Number(lowStock[0]?.count || 0),
       recentTransactions: recent,
+      topSellingProducts: topSelling.rows.map(row => ({
+        name: row.name as string,
+        quantity: Number(row.quantity),
+      })),
     };
   }
 }

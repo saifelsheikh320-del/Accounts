@@ -233,6 +233,7 @@ export const api = {
           totalProfits: z.number(),
           lowStockCount: z.number(),
           recentTransactions: z.array(z.custom<typeof transactions.$inferSelect>()),
+          topSellingProducts: z.array(z.object({ name: z.string(), quantity: z.number() })),
         }),
       },
     },
