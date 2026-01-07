@@ -13,10 +13,9 @@ import {
 
 let isInitialized = false; // Prevent multiple inits in serverless
 
-export async function registerRoutes(
-  httpServer: Server,
+export function registerRoutes(
   app: Express
-): Promise<Server> {
+): Express {
 
   // === USERS ===
   app.get(api.users.list.path, async (req, res) => {
@@ -317,16 +316,14 @@ export async function registerRoutes(
     }
   });
 
-  // Run schema initialization and seeding
+  // Run schema initialization and seeding in background
   const shouldInit = process.env.IS_ELECTRON === 'true' || process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
   if (shouldInit && !isInitialized) {
     isInitialized = true;
-    // Do not await in serverless to prevent timeout on cold start
-    // The DB will catch up in the background or sub-sequent calls
     initializeSchema().then(() => seedDatabase()).catch(err => {
       console.error("Delayed DB Init Error:", err);
-      isInitialized = false; // Allow retry on next request if it failed
+      isInitialized = false;
     });
   }
 
@@ -378,7 +375,7 @@ export async function registerRoutes(
     }
   });
 
-  return httpServer;
+  return app;
 }
 
 async function seedDatabase() {
