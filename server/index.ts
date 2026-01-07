@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 
 const app = express();
+export default app; // Export for Vercel
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -84,14 +85,17 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5001", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "127.0.0.1",
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  // On Vercel, we don't start the server ourselves
+  if (!process.env.VERCEL) {
+    const port = parseInt(process.env.PORT || "5050", 10);
+    httpServer.listen(
+      {
+        port,
+        host: "127.0.0.1",
+      },
+      () => {
+        log(`serving on port ${port}`);
+      },
+    );
+  }
 })();
