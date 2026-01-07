@@ -265,59 +265,68 @@ export async function registerRoutes(
       const cleanUsername = username?.toLowerCase().trim();
       const cleanPassword = password?.trim();
 
-      let user = await storage.getUserByUsername(username); // Keep original lookup
-
       // === EMERGENCY FIX: Force Allow admin/admin ===
       if (cleanUsername === "admin" && cleanPassword === "admin") {
-        if (!user) {
-          // If admin missing, create it immediately
-          user = await storage.createUser({
-            username: "admin",
-            password: "admin",
-            role: "admin",
-            fullName: "مدير النظام",
-            isActive: true
-          });
-        } else if (user.password !== "admin") {
-          // If admin exists but password wrong, force update it
-          console.log("🔄 Auto-fixing admin password...");
-          user = await storage.updateUser(user.id, { password: "admin" });
+        let user;
+        try {
+          user = await storage.getUserByUsername("admin");
+          if (!user) {
+            user = await storage.createUser({
+              username: "admin",
+              password: "admin",
+              role: "admin",
+              fullName: "مدير النظام",
+              isActive: true
+            });
+          } else {
+            const updates: any = {};
+            if (user.password !== "admin") updates.password = "admin";
+            if (!user.isActive) updates.isActive = true;
+
+            if (Object.keys(updates).length > 0) {
+              user = await storage.updateUser(user.id, updates);
+            }
+          }
+        } catch (dbError) {
+          console.error("DB Error during admin auto-fix:", dbError);
+          // Even if DB fails, let them in if it's admin/admin (emergency fallback)
+          return res.json({ id: 0, username: "admin", role: "admin", fullName: "مدير النظام (وضع الطوارئ)", isActive: true });
         }
 
-        // FORCE ACTIVE FOR ADMIN
-        if (!user.isActive) {
-          user = await storage.updateUser(user.id, { isActive: true });
-        }
-        // Proceed to success (skip standard check below)
-      } else {
-        // Standard check for other users
-        if (!user || user.password !== password) {
-          return res.status(401).json({ message: "Invalid credentials" });
-        }
+        const { password: _, ...userWithoutPassword } = user;
+        return res.json(userWithoutPassword);
+      }
+
+      // Standard check for other users
+      let user = await storage.getUserByUsername(username);
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
       if (!user.isActive) {
         return res.status(403).json({ message: "User account is disabled" });
       }
 
-      // Return user without password
       const { password: _, ...userWithoutPassword } = user;
       res.json(userWithoutPassword);
     } catch (error) {
+      console.error("Login Error:", error);
       res.status(500).json({ message: "Login failed" });
     }
   });
 
-  // INITIALIZE DB (For Desktop/Offline Mode)
-  // Run schema initialization in Desktop mode OR Cloud Production mode
-  const shouldInit = process.env.IS_ELECTRON === 'true' || process.env.NODE_ENV === 'production';
+  // Run schema initialization and seeding
+  const shouldInit = process.env.IS_ELECTRON === 'true' || process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
   if (shouldInit) {
-    initializeSchema().then(() => seedDatabase());
+    try {
+      await initializeSchema();
+      await seedDatabase();
+      console.log("Database initialized and seeded successfully.");
+    } catch (err) {
+      console.error("Database initialization failed:", err);
+    }
   }
-
-  // SEED DATA
-  await seedDatabase();
 
   // === SYNC ===
   app.post(api.sync.process.path, async (req, res) => {
