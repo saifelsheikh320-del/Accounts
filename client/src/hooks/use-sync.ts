@@ -44,7 +44,7 @@ export function useSync() {
     const triggerSync = async () => {
         // === HARDCODED CLOUD URL ===
         // This makes the app "know" the site automatically
-        const HARDCODED_URL = "https://smart-summary.replit.app";
+        const HARDCODED_URL = "https://accounts-liart-seven.vercel.app";
 
         const remoteUrl = (settings as any)?.remoteUrl || HARDCODED_URL;
 
