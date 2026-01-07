@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المحاسب الذكي - جاري التحميل</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .loader-container {
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+        }
+
+        h1 {
+            color: #1e293b;
+            font-size: 24px;
+            margin: 0 0 8px;
+            font-weight: 800;
+        }
+
+        p {
+            color: #64748b;
+            font-size: 14px;
+            margin: 0 0 30px;
+        }
+
+        .progress-bar {
+            width: 200px;
+            height: 6px;
+            background: #cbd5e1;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .progress-value {
+            position: absolute;
+            top: 0;
+            right: 0; /* RTL */
+            height: 100%;
+            width: 30%;
+            background: #2563eb;
+            border-radius: 3px;
+            animation: loading 2s infinite ease-in-out;
+        }
+
+        @keyframes loading {
+            0% { right: -30%; width: 30%; }
+            50% { right: 30%; width: 60%; }
+            100% { right: 100%; width: 30%; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loader-container">
+        <div class="logo">
+            <!-- Simple SVG Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+        </div>
+        <h1>المحاسب الذكي</h1>
+        <p>جاري تشغيل النظام وقاعدة البيانات...</p>
+        
+        <div class="progress-bar">
+            <div class="progress-value"></div>
+        </div>
+    </div>
+</body>
+</html>

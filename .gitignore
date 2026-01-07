@@ -1,6 +1,27 @@
-node_modules
-dist
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+bin/
+
+# Environment variables
+.env
+.env.local
+
+# IDE and OS files
+.idea/
+.vscode/
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+*.log
+Thumbs.db
+
+# Electron specific
+*.exe
+*.dmg
+*.AppImage
+*.asar
+
+# Local database (PGlite)
+smart_accountant_db/

@@ -1,0 +1,13 @@
+node_modules
+dist
+.git
+.env
+pglite_data
+*.db
+*.log
+npm-debug.log
+.vscode
+.agent
+brain
+screenshots
+recordings

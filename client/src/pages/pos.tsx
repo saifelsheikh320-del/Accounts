@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout";
+import { useLocation } from "wouter";
 import { useProducts } from "@/hooks/use-products";
 import { usePartners } from "@/hooks/use-partners";
 import { useCreateTransaction } from "@/hooks/use-transactions";
-import { Search, ShoppingCart, Plus, Minus, Trash2, Printer, CheckCircle } from "lucide-react";
+import { Search, ShoppingCart, Plus, Minus, Trash2, Printer, CheckCircle, RefreshCcw, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -18,27 +19,53 @@ type CartItem = {
 };
 
 export default function POS() {
+  const [location, setLocation] = useLocation();
   const [search, setSearch] = useState("");
-  const { data: products } = useProducts(search);
-  const { data: partners } = usePartners('customer');
+  const [txType, setTxType] = useState<"sale" | "purchase" | "sale_return" | "purchase_return">("sale");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>("");
   const [isSuccessOpen, setSuccessOpen] = useState(false);
-  
+
+  // Sync txType with URL query parameter
+  useEffect(() => {
+    const updateType = () => {
+      const params = new URLSearchParams(window.location.search);
+      const type = params.get('type') as any;
+      if (type && ["sale", "purchase", "sale_return", "purchase_return"].includes(type)) {
+        setTxType(type);
+        setCart([]); // Clear cart when switching type
+      } else if (!type) {
+        setTxType("sale");
+        setCart([]);
+      }
+    };
+
+    updateType();
+
+    // Listen for custom navigate events (from wouter) and popstate
+    window.addEventListener('popstate', updateType);
+    return () => window.removeEventListener('popstate', updateType);
+  }, [location]); // React to location changes from wouter
+
+  const { data: products } = useProducts(search);
+  const { data: partners } = usePartners(txType.includes('purchase') ? 'supplier' : 'customer');
+
   const { toast } = useToast();
   const createTransaction = useCreateTransaction();
 
   const addToCart = (product: any) => {
     setCart(prev => {
       const existing = prev.find(item => item.productId === product.id);
+      const price = txType.includes('purchase') ? Number(product.costPrice) : Number(product.sellingPrice);
+
       if (existing) {
-        return prev.map(item => 
-          item.productId === product.id 
-            ? { ...item, quantity: item.quantity + 1 } 
+        return prev.map(item =>
+          item.productId === product.id
+            ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prev, { productId: product.id, name: product.name, price: Number(product.sellingPrice), quantity: 1 }];
+      return [...prev, { productId: product.id, name: product.name, price, quantity: 1 }];
     });
   };
 
@@ -60,20 +87,20 @@ export default function POS() {
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
-    
+
     try {
       await createTransaction.mutateAsync({
-        type: "sale",
-        userId: 1, // Hardcoded for now, normally from auth context
+        type: txType,
+        userId: 1,
         partnerId: selectedPartnerId ? Number(selectedPartnerId) : undefined,
         items: cart.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
           price: item.price
         })),
-        notes: "POS Sale"
+        notes: `${txType} transaction via POS`
       });
-      
+
       setSuccessOpen(true);
       setCart([]);
       setSelectedPartnerId("");
@@ -83,45 +110,61 @@ export default function POS() {
   };
 
   return (
-    <Layout>
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)] gap-6">
+    <>
+      {/* Transaction Type Selector */}
+      <div className="flex gap-2 mb-6 bg-white p-2 rounded-xl border border-gray-100 shadow-sm w-fit">
+        {[
+          { id: 'sale', label: 'مبيعات', color: 'bg-emerald-500' },
+          { id: 'purchase', label: 'مشتريات', color: 'bg-blue-500' },
+          { id: 'sale_return', label: 'مرتجع مبيعات', color: 'bg-red-500' },
+          { id: 'purchase_return', label: 'مرتجع مشتريات', color: 'bg-amber-500' },
+        ].map((type) => (
+          <button
+            key={type.id}
+            onClick={() => {
+              setLocation(`/pos?type=${type.id}`);
+            }}
+            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${txType === type.id
+              ? `${type.color} text-white shadow-lg scale-105`
+              : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+              }`}
+          >
+            {type.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-10rem)] gap-6">
         {/* Left Side - Products */}
         <div className="flex-1 flex flex-col gap-4 min-w-0">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input 
-                placeholder="بحث عن منتج..." 
+              <Input
+                placeholder="بحث عن منتج..."
                 className="pr-10"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <Select>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="التصنيف" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">الكل</SelectItem>
-                <SelectItem value="electronics">إلكترونيات</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="flex-1 overflow-y-auto bg-gray-50/50 rounded-xl p-2">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {products?.map(product => (
                 <button
                   key={product.id}
                   onClick={() => addToCart(product)}
-                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/50 transition-all text-right group flex flex-col justify-between h-[140px]"
+                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/50 transition-all text-right group flex flex-col justify-between"
                 >
-                  <div>
+                  <div className="mb-4">
                     <h3 className="font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">{product.name}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">الكمية: {product.quantity}</p>
+                    <p className="text-xs text-muted-foreground mt-1">المخزون: {product.quantity}</p>
                   </div>
-                  <div className="mt-4 font-bold text-emerald-600">
-                    {Number(product.sellingPrice).toFixed(2)} ج.م
+                  <div className={`font-bold ${txType.includes('purchase') ? 'text-blue-600' : 'text-emerald-600'}`}>
+                    {txType.includes('purchase')
+                      ? `${Number(product.costPrice).toFixed(2)} ج.م (شراء)`
+                      : `${Number(product.sellingPrice).toFixed(2)} ج.م (بيع)`}
                   </div>
                 </button>
               ))}
@@ -134,14 +177,14 @@ export default function POS() {
           <div className="p-4 border-b border-gray-100">
             <h2 className="font-bold text-lg flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-primary" />
-              سلة المبيعات
+              سلة {txType === 'sale' ? 'المبيعات' : txType === 'purchase' ? 'المشتريات' : 'المرتجعات'}
             </h2>
           </div>
 
           <div className="p-4 border-b border-gray-100 bg-gray-50">
             <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
               <SelectTrigger className="bg-white">
-                <SelectValue placeholder="اختر العميل (اختياري)" />
+                <SelectValue placeholder={txType.includes('purchase') ? "اختر المورد" : "اختر العميل"} />
               </SelectTrigger>
               <SelectContent>
                 {partners?.map(p => (
@@ -184,8 +227,8 @@ export default function POS() {
               <span>الإجمالي</span>
               <span className="text-primary text-2xl">{total.toFixed(2)} ج.م</span>
             </div>
-            <Button 
-              className="w-full btn-primary h-12 text-lg" 
+            <Button
+              className="w-full btn-primary h-12 text-lg"
               onClick={handleCheckout}
               disabled={cart.length === 0 || createTransaction.isPending}
             >
@@ -212,6 +255,6 @@ export default function POS() {
           </div>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </>
   );
 }

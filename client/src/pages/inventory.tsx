@@ -33,105 +33,102 @@ export default function Inventory() {
   };
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">إدارة المخزون</h1>
-            <p className="text-muted-foreground">قائمة المنتجات ومراقبة الكميات</p>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">إدارة المخزون</h1>
+          <p className="text-muted-foreground">قائمة المنتجات ومراقبة الكميات</p>
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) setEditingProduct(null);
+        }}>
+          <DialogTrigger asChild>
+            <Button className="btn-primary gap-2">
+              <Plus className="w-4 h-4" /> إضافة منتج جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]" dir="rtl">
+            <DialogHeader>
+              <DialogTitle>{editingProduct ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
+            </DialogHeader>
+            <ProductForm
+              defaultValues={editingProduct}
+              onSuccess={() => setIsDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100 flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="بحث باسم المنتج أو الكود..."
+              className="pr-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) setEditingProduct(null);
-          }}>
-            <DialogTrigger asChild>
-              <Button className="btn-primary gap-2">
-                <Plus className="w-4 h-4" /> إضافة منتج جديد
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]" dir="rtl">
-              <DialogHeader>
-                <DialogTitle>{editingProduct ? 'تعديل منتج' : 'إضافة منتج جديد'}</DialogTitle>
-              </DialogHeader>
-              <ProductForm 
-                defaultValues={editingProduct} 
-                onSuccess={() => setIsDialogOpen(false)} 
-              />
-            </DialogContent>
-          </Dialog>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-4 border-b border-gray-100 flex items-center gap-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input 
-                placeholder="بحث باسم المنتج أو الكود..." 
-                className="pr-10"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-right">
-              <thead className="bg-gray-50 text-muted-foreground text-sm font-medium">
-                <tr>
-                  <th className="px-6 py-4">المنتج</th>
-                  <th className="px-6 py-4">التصنيف</th>
-                  <th className="px-6 py-4">سعر التكلفة</th>
-                  <th className="px-6 py-4">سعر البيع</th>
-                  <th className="px-6 py-4">الكمية</th>
-                  <th className="px-6 py-4 text-center">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {isLoading ? (
-                  <tr><td colSpan={6} className="text-center py-8">جاري التحميل...</td></tr>
-                ) : products?.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                          <Package className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-foreground">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">SKU: {product.sku || '-'}</p>
-                        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-right">
+            <thead className="bg-gray-50 text-muted-foreground text-sm font-medium">
+              <tr>
+                <th className="px-6 py-4">المنتج</th>
+                <th className="px-6 py-4">التصنيف</th>
+                <th className="px-6 py-4">سعر التكلفة</th>
+                <th className="px-6 py-4">سعر البيع</th>
+                <th className="px-6 py-4">الكمية</th>
+                <th className="px-6 py-4 text-center">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {isLoading ? (
+                <tr><td colSpan={6} className="text-center py-8">جاري التحميل...</td></tr>
+              ) : products?.map((product) => (
+                <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                        <Package className="w-5 h-5" />
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm">{product.category || '-'}</td>
-                    <td className="px-6 py-4 text-sm font-medium">{Number(product.costPrice).toFixed(2)}</td>
-                    <td className="px-6 py-4 text-sm font-bold text-emerald-600">{Number(product.sellingPrice).toFixed(2)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                        product.quantity <= (product.minStockLevel || 5) 
-                          ? 'bg-red-100 text-red-700' 
-                          : 'bg-emerald-100 text-emerald-700'
+                      <div>
+                        <p className="font-bold text-foreground">{product.name}</p>
+                        <p className="text-xs text-muted-foreground">SKU: {product.sku || '-'}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm">{product.category || '-'}</td>
+                  <td className="px-6 py-4 text-sm font-medium">{Number(product.costPrice).toFixed(2)}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-emerald-600">{Number(product.sellingPrice).toFixed(2)}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${product.quantity <= (product.minStockLevel || 5)
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-emerald-100 text-emerald-700'
                       }`}>
-                        {product.quantity} قطعة
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
-                          <Edit className="w-4 h-4 text-blue-600" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
-                          <Trash2 className="w-4 h-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {product.quantity} قطعة
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(product)}>
+                        <Edit className="w-4 h-4 text-blue-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(product.id)}>
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 }
 
@@ -147,7 +144,7 @@ function ProductForm({ defaultValues, onSuccess }: { defaultValues?: any, onSucc
   const { toast } = useToast();
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: defaultValues || {
@@ -166,7 +163,7 @@ function ProductForm({ defaultValues, onSuccess }: { defaultValues?: any, onSucc
       // Convert numbers to strings for the API schema which expects numeric/decimal as string sometimes
       // But actually our schema defined numeric fields which drizzle-zod might expect as strings or numbers
       // Let's pass numbers, if it fails we fix. Our hook handles stringification.
-      
+
       const payload = {
         ...data,
         costPrice: String(data.costPrice),

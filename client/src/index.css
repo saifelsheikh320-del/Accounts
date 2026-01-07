@@ -87,3 +87,9 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
+
+/* Prevent scroll chaining on sidebar */
+aside nav {
+  overscroll-behavior: contain;
+  -ms-scroll-chaining: none;
+}
