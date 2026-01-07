@@ -1,2 +1,2 @@
 const app = require('../dist/index.cjs');
-module.exports = app;
+module.exports = app.default || app;
