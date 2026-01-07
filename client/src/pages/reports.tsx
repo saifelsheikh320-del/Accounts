@@ -1,12 +1,16 @@
-import { Layout } from "@/components/layout";
+import Layout from "@/components/layout";
+import { FileBarChart } from "lucide-react";
 
 export default function Reports() {
   return (
     <Layout>
-      <div className="flex flex-col items-center justify-center h-[80vh] text-center p-8">
-        <h1 className="text-4xl font-bold font-display mb-4 text-primary/40">Coming Soon</h1>
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
+        <div className="bg-primary/10 p-6 rounded-full text-primary mb-4">
+          <FileBarChart className="w-16 h-16" />
+        </div>
+        <h1 className="text-3xl font-bold">التقارير التفصيلية</h1>
         <p className="text-muted-foreground max-w-md">
-          Advanced reporting with date filtering, export capabilities, and detailed analytics is currently under development.
+          جاري العمل على تطوير هذه الصفحة لإضافة تقارير مبيعات متقدمة وتحليلات الأرباح والخسائر.
         </p>
       </div>
     </Layout>

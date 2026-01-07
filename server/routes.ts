@@ -170,44 +170,44 @@ async function seedDatabase() {
       username: "admin",
       password: "password123", // In a real app, hash this!
       role: "admin",
-      fullName: "System Administrator",
+      fullName: "مدير النظام",
       isActive: true
     });
 
     // Create Sample Products
     await storage.createProduct({
-      name: "Wireless Mouse",
+      name: "ماوس لاسلكي",
       sku: "MS-001",
       quantity: 50,
       costPrice: "10.00",
       sellingPrice: "25.00",
-      category: "Electronics"
+      category: "إلكترونيات"
     });
     await storage.createProduct({
-      name: "Mechanical Keyboard",
+      name: "لوحة مفاتيح ميكانيكية",
       sku: "KB-002",
       quantity: 20,
       costPrice: "40.00",
       sellingPrice: "89.99",
-      category: "Electronics"
+      category: "إلكترونيات"
     });
     await storage.createProduct({
-      name: "USB-C Cable",
+      name: "كابل USB-C",
       sku: "CB-003",
       quantity: 100,
       costPrice: "2.00",
       sellingPrice: "9.99",
-      category: "Accessories"
+      category: "اكسسوارات"
     });
 
     // Create Sample Partners
     await storage.createPartner({
-      name: "Walk-in Customer",
+      name: "عميل نقدي",
       type: "customer",
       email: "guest@store.com"
     });
     await storage.createPartner({
-      name: "Tech Supplier Inc.",
+      name: "شركة التوريد التقنية",
       type: "supplier",
       email: "orders@techsupplier.com"
     });

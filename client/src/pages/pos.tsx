@@ -1,200 +1,217 @@
 import { useState } from "react";
-import { Layout } from "@/components/layout";
+import Layout from "@/components/layout";
 import { useProducts } from "@/hooks/use-products";
 import { usePartners } from "@/hooks/use-partners";
 import { useCreateTransaction } from "@/hooks/use-transactions";
-import { useCart } from "@/hooks/use-cart";
-import { Product } from "@shared/schema";
+import { Search, ShoppingCart, Plus, Minus, Trash2, Printer, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Minus, Trash2, CreditCard, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+type CartItem = {
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+};
 
 export default function POS() {
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const { data: products, isLoading: loadingProducts } = useProducts(search, selectedCategory);
-  const { data: customers } = usePartners("customer");
-  
-  const { items, addItem, removeItem, updateQuantity, clearCart, total } = useCart();
+  const { data: products } = useProducts(search);
+  const { data: partners } = usePartners('customer');
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>("");
+  const [isSuccessOpen, setSuccessOpen] = useState(false);
   
+  const { toast } = useToast();
   const createTransaction = useCreateTransaction();
 
-  const handleCheckout = async () => {
-    if (items.length === 0) return;
+  const addToCart = (product: any) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.productId === product.id);
+      if (existing) {
+        return prev.map(item => 
+          item.productId === product.id 
+            ? { ...item, quantity: item.quantity + 1 } 
+            : item
+        );
+      }
+      return [...prev, { productId: product.id, name: product.name, price: Number(product.sellingPrice), quantity: 1 }];
+    });
+  };
 
+  const removeFromCart = (productId: number) => {
+    setCart(prev => prev.filter(item => item.productId !== productId));
+  };
+
+  const updateQuantity = (productId: number, delta: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.productId === productId) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    
     try {
       await createTransaction.mutateAsync({
         type: "sale",
-        userId: 1, // Hardcoded for MVP, would come from auth context
+        userId: 1, // Hardcoded for now, normally from auth context
         partnerId: selectedPartnerId ? Number(selectedPartnerId) : undefined,
-        totalAmount: total, // Backend calculates this but frontend sends for validation if needed, schema requires it not though? Actually schema derives total in logic usually but let's check schema. Schema has totalAmount in transactions table.
-        // Wait, schema for createTransactionRequestSchema does NOT have totalAmount. It calculates it from items? 
-        // Let's re-read schema.
-        // createTransactionRequestSchema has: type, partnerId, userId, items, notes.
-        // Good. Backend will calc total.
-        items: items.map(item => ({
-          productId: item.id,
-          quantity: item.cartQuantity,
-          price: Number(item.sellingPrice)
+        items: cart.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price
         })),
         notes: "POS Sale"
       });
-      clearCart();
-    } catch (e) {
-      // Toast handled in hook
+      
+      setSuccessOpen(true);
+      setCart([]);
+      setSelectedPartnerId("");
+    } catch (error) {
+      toast({ variant: "destructive", title: "خطأ", description: "فشل إتمام العملية" });
     }
   };
 
-  const categories = Array.from(new Set(products?.map(p => p.category).filter(Boolean) as string[]));
-
   return (
     <Layout>
-      <div className="flex h-screen overflow-hidden pt-0 lg:pt-0"> {/* Adjust padding if header exists */}
-        
-        {/* Left Side: Product Grid */}
-        <div className="flex-1 flex flex-col h-full bg-muted/30 border-r p-6 gap-6">
-          <div className="flex items-center gap-4">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)] gap-6">
+        {/* Left Side - Products */}
+        <div className="flex-1 flex flex-col gap-4 min-w-0">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input 
-                placeholder="Search products..." 
-                className="pl-9 bg-white dark:bg-card border-none shadow-sm h-12 rounded-xl"
+                placeholder="بحث عن منتج..." 
+                className="pr-10"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-[180px] h-12 rounded-xl bg-white dark:bg-card border-none shadow-sm">
-                <SelectValue placeholder="Category" />
+            <Select>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="التصنيف" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map(c => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
+                <SelectItem value="all">الكل</SelectItem>
+                <SelectItem value="electronics">إلكترونيات</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <ScrollArea className="flex-1 -mx-2 px-2">
-            {loadingProducts ? (
-              <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" /></div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20">
-                {products?.map((product) => (
-                  <div 
-                    key={product.id}
-                    onClick={() => addItem(product)}
-                    className="group bg-white dark:bg-card p-4 rounded-xl border border-transparent hover:border-primary/20 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col h-full"
-                  >
-                    <div className="aspect-square bg-muted/50 rounded-lg mb-3 flex items-center justify-center text-4xl font-display font-bold text-muted-foreground/20">
-                      {product.name.charAt(0)}
-                    </div>
-                    <h3 className="font-semibold text-foreground line-clamp-1">{product.name}</h3>
-                    <div className="mt-auto flex items-center justify-between pt-2">
-                      <span className="font-mono font-bold text-primary">${Number(product.sellingPrice).toFixed(2)}</span>
-                      <span className="text-xs text-muted-foreground">{product.quantity} in stock</span>
-                    </div>
+          <div className="flex-1 overflow-y-auto bg-gray-50/50 rounded-xl p-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {products?.map(product => (
+                <button
+                  key={product.id}
+                  onClick={() => addToCart(product)}
+                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-primary/50 transition-all text-right group flex flex-col justify-between h-[140px]"
+                >
+                  <div>
+                    <h3 className="font-bold text-foreground line-clamp-2 group-hover:text-primary transition-colors">{product.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">الكمية: {product.quantity}</p>
                   </div>
-                ))}
-              </div>
-            )}
-          </ScrollArea>
-        </div>
-
-        {/* Right Side: Cart */}
-        <div className="w-[400px] flex flex-col h-full bg-background shadow-2xl z-10">
-          <div className="p-6 border-b space-y-4">
-            <h2 className="text-2xl font-bold font-display">Current Order</h2>
-            <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
-              <SelectTrigger className="w-full h-11 rounded-lg">
-                <SelectValue placeholder="Select Customer (Optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {customers?.map(c => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <ScrollArea className="flex-1 p-6">
-            <div className="space-y-4">
-              {items.length === 0 ? (
-                <div className="text-center text-muted-foreground py-10">
-                  <ShoppingCart className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>Cart is empty</p>
-                </div>
-              ) : items.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 bg-muted/30 p-3 rounded-xl border">
-                  <div className="w-12 h-12 rounded-lg bg-white dark:bg-card flex items-center justify-center font-bold text-primary">
-                    {item.name.charAt(0)}
+                  <div className="mt-4 font-bold text-emerald-600">
+                    {Number(product.sellingPrice).toFixed(2)} ج.م
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium truncate">{item.name}</h4>
-                    <p className="text-sm text-muted-foreground">${Number(item.sellingPrice).toFixed(2)}</p>
-                  </div>
-                  <div className="flex items-center gap-2 bg-background rounded-lg border p-1">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, item.cartQuantity - 1); }}
-                      className="w-6 h-6 flex items-center justify-center hover:bg-muted rounded text-foreground"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="w-6 text-center text-sm font-medium">{item.cartQuantity}</span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); addItem(item); }}
-                      className="w-6 h-6 flex items-center justify-center hover:bg-muted rounded text-foreground"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
+                </button>
               ))}
             </div>
-          </ScrollArea>
+          </div>
+        </div>
 
-          <div className="p-6 bg-muted/10 border-t space-y-4">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span>${total.toFixed(2)}</span>
+        {/* Right Side - Cart */}
+        <div className="w-full lg:w-[400px] bg-white rounded-2xl shadow-xl flex flex-col border border-gray-100">
+          <div className="p-4 border-b border-gray-100">
+            <h2 className="font-bold text-lg flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-primary" />
+              سلة المبيعات
+            </h2>
+          </div>
+
+          <div className="p-4 border-b border-gray-100 bg-gray-50">
+            <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="اختر العميل (اختياري)" />
+              </SelectTrigger>
+              <SelectContent>
+                {partners?.map(p => (
+                  <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {cart.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50">
+                <ShoppingCart className="w-16 h-16 mb-4" />
+                <p>السلة فارغة</p>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tax (0%)</span>
-                <span>$0.00</span>
-              </div>
-              <div className="flex justify-between text-xl font-bold text-primary pt-2 border-t">
-                <span>Total</span>
-                <span>${total.toFixed(2)}</span>
-              </div>
+            ) : (
+              cart.map(item => (
+                <div key={item.productId} className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm line-clamp-1">{item.name}</p>
+                    <p className="text-xs text-emerald-600 font-bold">{item.price.toFixed(2)} ج.م</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-1">
+                      <button onClick={() => updateQuantity(item.productId, -1)} className="p-1 hover:bg-white rounded shadow-sm transition-all"><Minus className="w-3 h-3" /></button>
+                      <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                      <button onClick={() => updateQuantity(item.productId, 1)} className="p-1 hover:bg-white rounded shadow-sm transition-all"><Plus className="w-3 h-3" /></button>
+                    </div>
+                    <button onClick={() => removeFromCart(item.productId)} className="text-red-400 hover:text-red-600">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="p-6 bg-gray-50 border-t border-gray-100 space-y-4">
+            <div className="flex justify-between items-center text-lg font-bold">
+              <span>الإجمالي</span>
+              <span className="text-primary text-2xl">{total.toFixed(2)} ج.م</span>
             </div>
-
             <Button 
-              className="w-full h-14 text-lg font-bold rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all"
-              size="lg"
-              disabled={items.length === 0 || createTransaction.isPending}
+              className="w-full btn-primary h-12 text-lg" 
               onClick={handleCheckout}
+              disabled={cart.length === 0 || createTransaction.isPending}
             >
-              {createTransaction.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Pay & Print
-                </>
-              )}
+              {createTransaction.isPending ? "جاري الدفع..." : "دفع وطباعة الفاتورة"}
             </Button>
           </div>
         </div>
       </div>
+
+      <Dialog open={isSuccessOpen} onOpenChange={setSuccessOpen}>
+        <DialogContent className="text-center sm:max-w-[400px]">
+          <div className="flex flex-col items-center justify-center py-6">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-4">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">تمت العملية بنجاح</h2>
+            <p className="text-muted-foreground mb-6">تم تسجيل الفاتورة وتحديث المخزون</p>
+            <div className="flex gap-4 w-full">
+              <Button variant="outline" className="flex-1" onClick={() => setSuccessOpen(false)}>إغلاق</Button>
+              <Button className="flex-1 gap-2" onClick={() => window.print()}>
+                <Printer className="w-4 h-4" /> طباعة
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

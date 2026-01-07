@@ -4,99 +4,79 @@ import {
   ShoppingCart, 
   Package, 
   Users, 
-  Receipt, 
-  Settings, 
-  BarChart3,
-  LogOut,
-  Menu
+  FileText, 
+  Settings,
+  Menu,
+  X
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
-const navItems = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
-  { label: "POS System", href: "/pos", icon: ShoppingCart },
-  { label: "Inventory", href: "/inventory", icon: Package },
-  { label: "Transactions", href: "/transactions", icon: Receipt },
-  { label: "Partners", href: "/partners", icon: Users },
-  { label: "Reports", href: "/reports", icon: BarChart3 },
-  { label: "Settings", href: "/settings", icon: Settings },
-];
-
-export function Layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
-  const NavContent = () => (
-    <div className="flex flex-col h-full bg-sidebar border-r">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold font-display text-primary flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-            S
-          </div>
-          SmartInv
-        </h1>
-      </div>
-
-      <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-        {navItems.map((item) => {
-          const isActive = location === item.href;
-          const Icon = item.icon;
-          return (
-            <Link key={item.href} href={item.href}>
-              <div
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 cursor-pointer ${
-                  isActive
-                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-semibold"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-                onClick={() => setIsOpen(false)}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </div>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t">
-        <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive gap-3">
-          <LogOut className="w-5 h-5" />
-          Logout
-        </Button>
-      </div>
-    </div>
-  );
+  const navItems = [
+    { href: "/", label: "لوحة التحكم", icon: LayoutDashboard },
+    { href: "/pos", label: "نقطة البيع", icon: ShoppingCart },
+    { href: "/inventory", label: "المخزون", icon: Package },
+    { href: "/partners", label: "العملاء والموردين", icon: Users },
+    { href: "/transactions", label: "المعاملات", icon: FileText },
+    { href: "/reports", label: "التقارير", icon: FileText },
+    { href: "/settings", label: "الإعدادات", icon: Settings },
+  ];
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 h-full">
-        <NavContent />
-      </aside>
-
-      {/* Mobile Sidebar */}
-      <div className="lg:hidden absolute top-4 left-4 z-50">
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Menu className="w-5 h-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64 border-r">
-            <NavContent />
-          </SheetContent>
-        </Sheet>
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row" dir="rtl">
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-white shadow-sm">
+        <h1 className="text-xl font-bold text-primary">نظام إدارة ذكي</h1>
+        <button onClick={() => setSidebarOpen(!isSidebarOpen)}>
+          {isSidebarOpen ? <X /> : <Menu />}
+        </button>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <div className="h-full w-full">
-          {children}
+      {/* Sidebar */}
+      <aside className={cn(
+        "fixed inset-y-0 right-0 z-50 w-64 bg-white border-l border-gray-100 shadow-xl transition-transform duration-300 md:translate-x-0 md:static md:shadow-none",
+        !isSidebarOpen && "translate-x-full"
+      )}>
+        <div className="p-6 border-b border-gray-100">
+          <h1 className="text-2xl font-black bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+            المحاسب الذكي
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">إدارة متكاملة</p>
         </div>
+
+        <nav className="p-4 space-y-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.href;
+            return (
+              <Link key={item.href} href={item.href} className={cn(
+                "sidebar-link group",
+                isActive && "active"
+              )}>
+                <Icon className={cn("w-5 h-5 transition-transform group-hover:scale-110", isActive && "text-primary")} />
+                <span className="font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto p-4 md:p-8">
+        {children}
       </main>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 }

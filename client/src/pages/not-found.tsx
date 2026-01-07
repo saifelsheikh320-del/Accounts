@@ -1,29 +1,24 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertTriangle } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md mx-4 border-none shadow-xl">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md text-center">
         <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-destructive" />
-            <h1 className="text-2xl font-bold font-display text-foreground">404 Page Not Found</h1>
+          <div className="flex mb-4 justify-center">
+            <AlertTriangle className="h-12 w-12 text-yellow-500" />
           </div>
-
-          <p className="mt-4 text-sm text-muted-foreground">
-            We couldn't find the page you were looking for.
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">404 - الصفحة غير موجودة</h1>
+          <p className="text-gray-600 mb-6">
+            عذراً، الصفحة التي تحاول الوصول إليها غير موجودة أو تم نقلها.
           </p>
-          
-          <div className="mt-6">
-            <Link href="/">
-              <Button className="w-full">
-                Return to Dashboard
-              </Button>
-            </Link>
-          </div>
+          <Link href="/">
+            <span className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground shadow hover:bg-primary/90 h-10 px-8 py-2 cursor-pointer">
+              العودة للرئيسية
+            </span>
+          </Link>
         </CardContent>
       </Card>
     </div>
