@@ -2,7 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { eq, like, and, desc, sql, gte, lte } from "drizzle-orm";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import {
@@ -10,6 +10,8 @@ import {
   createTransactionRequestSchema, insertSettingsSchema,
   insertEmployeeSchema, insertSalarySchema, insertAccountSchema
 } from "@shared/schema";
+
+let isInitialized = false; // Prevent multiple inits in serverless
 
 export async function registerRoutes(
   httpServer: Server,
@@ -318,15 +320,29 @@ export async function registerRoutes(
   // Run schema initialization and seeding
   const shouldInit = process.env.IS_ELECTRON === 'true' || process.env.NODE_ENV === 'production' || process.env.VERCEL;
 
-  if (shouldInit) {
-    try {
-      await initializeSchema();
-      await seedDatabase();
-      console.log("Database initialized and seeded successfully.");
-    } catch (err) {
-      console.error("Database initialization failed:", err);
-    }
+  if (shouldInit && !isInitialized) {
+    isInitialized = true;
+    // Do not await in serverless to prevent timeout on cold start
+    // The DB will catch up in the background or sub-sequent calls
+    initializeSchema().then(() => seedDatabase()).catch(err => {
+      console.error("Delayed DB Init Error:", err);
+      isInitialized = false; // Allow retry on next request if it failed
+    });
   }
+
+  // === DEBUG / HEALTH ===
+  app.get("/api/health", async (req, res) => {
+    try {
+      await db.execute(sql`SELECT 1`);
+      res.json({
+        status: "ok",
+        initialized: isInitialized,
+        mode: process.env.VERCEL ? "vercel" : "server"
+      });
+    } catch (e) {
+      res.status(500).json({ status: "error", message: (e as Error).message });
+    }
+  });
 
   // === SYNC ===
   app.post(api.sync.process.path, async (req, res) => {
